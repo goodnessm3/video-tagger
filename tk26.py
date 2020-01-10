@@ -8,16 +8,14 @@ from collections import deque
 from tkinter import simpledialog, font, filedialog
 from dbman_v4 import DBManager
 from videoobject import VideoObject
-import json
+from settings import SETTINGS  # a dict containing values stored in the json file
 
 """The main program file, will create a database if necessary on first-time setup when none exists.
 Specify settings in settings.json
-Note this is designed to work on Windows"""
+Note this is designed to work with Windows type paths"""
 
-with open("settings.json", "r") as f:
-    data = json.load(f)
-    TOP_LEVEL = data["TOP_LEVEL"]
-    SQLPATH = data["SQLPATH"]
+TOP_LEVEL = SETTINGS["TOP_LEVEL"]
+SQLPATH = SETTINGS["SQLPATH"]
 
 
 class ThumbGenerator:

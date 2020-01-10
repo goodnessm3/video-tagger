@@ -3,7 +3,10 @@ from PIL import Image
 from io import BytesIO
 import os
 import subprocess as sp
+from settings import SETTINGS
 
+FFMPEG = SETTINGS["FFMPEG_PATH"]
+FFPROBE = SETTINGS["FFPROBE_PATH"]
 
 class VideoObject:
 
@@ -29,9 +32,10 @@ class VideoObject:
     @staticmethod
     def get_initial_info(path):
 
-        path = '''"{}"'''.format(path)  # needs extra quotes to work as command line argument
-        cmd = "C:\\s\\ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 %s"\
-              % path
+        #path = '''"{}"'''.format(path)  # needs extra quotes to work as command line argument
+        #cmd = "C:\\s\\ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 %s"\
+        #      % path
+        cmd = f'''{FFPROBE} -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "{path}"'''
         pipe = sp.Popen(cmd, stdout=sp.PIPE, stderr=sp.PIPE, bufsize=10 ** 8)
         try:
             info2, error = pipe.communicate(timeout=15)
@@ -57,11 +61,11 @@ class VideoObject:
 
         def get_image(timepoint):
 
-            cmd = "C:\\s\\ffmpeg.exe -ss %f -i %s -f image2pipe -vframes 1 -s 320x240 -"\
-                  % (timepoint, '''"{}"'''.format(self.path))
+            #cmd = "C:\\s\\ffmpeg.exe -ss %f -i %s -f image2pipe -vframes 1 -s 320x240 -"\
+                  #% (timepoint, '''"{}"'''.format(self.path))
+            cmd = f'''{FFMPEG} -ss {timepoint} -i "{self.path}" -f image2pipe -vframes 1 -s 320x240 -'''
             pipe = sp.Popen(cmd, stdout=sp.PIPE, stderr=sp.PIPE, bufsize=10 ** 8)
-            # a = pipe.communicate()
-            # return a
+
             return pipe
 
         images_to_return = []
@@ -128,8 +132,9 @@ class VideoObject:
     @staticmethod
     def get_video_res(fullpath):
 
-        cmd = '''C:\\s\\ffprobe -v error -select_streams v:0 -show_entries stream=height,width -of csv=s=x:p=0 "%s"'''\
-              % fullpath
+        #cmd = '''C:\\s\\ffprobe -v error -select_streams v:0 -show_entries stream=height,width -of csv=s=x:p=0 "%s"'''\
+              #% fullpath
+        cmd = f'''{FFPROBE} -v error -select_streams v:0 -show_entries stream=height,width -of csv=s=x:p=0 {fullpath}'''
         pipe = sp.Popen(cmd, stdout=sp.PIPE, stderr=sp.PIPE, bufsize=10 ** 8)
         info2, error = pipe.communicate()
         info = info2.decode("utf-8")

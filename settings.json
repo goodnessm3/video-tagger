@@ -1,7 +1,7 @@
 {
   "TOP_LEVEL": "C:\\s\\videodir",
   "SQLPATH": "C:\\s\\test_video_db.sqlite3",
-  "EXTENSIONS": [".mp4", ".avi"],
+  "EXTENSIONS": [".mp4", ".avi", ".wmv", ".rm", ".mpg", ".mpeg", ".mkv", ".flv"],
   "FFMPEG_PATH": "C:\\s\\ffmpeg.exe",
   "FFPROBE_PATH": "C:\\s\\ffprobe.exe"
 }
