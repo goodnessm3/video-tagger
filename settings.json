@@ -1,0 +1,5 @@
+{
+  "TOP_LEVEL": "C:\\s\\videodir",
+  "SQLPATH": "C:\\s\\test_video_db.sqlite3",
+  "EXTENSIONS": [".mp4", ".avi"]
+}
