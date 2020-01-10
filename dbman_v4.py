@@ -368,7 +368,7 @@ class DBManager:
         out = []
 
         for name in ["left_arrow", "right_arrow", "placeholder"]:
-            with open(f"{name}.png", "rb") as f:
+            with open(f"{name}.gif", "rb") as f:
                 img = f.read()
                 out.append(img)
 
