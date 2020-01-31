@@ -88,7 +88,8 @@ class ThumbGenerator:
         self.updater_running = False
         return
 
-class PicsWindow:
+
+class PicsWindow(Toplevel):
 
     """Common base class for ImageWindow and QueryWindow"""
 
@@ -96,18 +97,18 @@ class PicsWindow:
 
         """A grid of x by y image panels, packs itself to the right of the parent container"""
 
+        super().__init__(parent)
         self.filename_font = font.Font(family="Helvetica", size="12")
         self.placeholder_image = ph
         self.parent = parent
-        self.container = Toplevel(parent)
-        self.container.title("thumbnails")
+        self.title("thumbnails")
 
         self.path = None
         self.piclist = []  # to save reference to photoimages
         self.picture_panels = []  # reference to the labels showing the images
         self.time_labels = []  # timestamps to be displayed under thumbnails
         self.video_object = None  # reference to the video object currently displayed
-        self.file_name_display = Label(self.container, text="Results", bg="light grey", font=self.filename_font)
+        self.file_name_display = Label(self, text="Results", bg="light grey", font=self.filename_font)
         # default text is "results" but always overwritten if it is a VideoObject
         self.file_name_display.pack(side=TOP)
 
@@ -117,19 +118,24 @@ class PicsWindow:
         self.index_from = 0  # used in update_images, not relevant for VideoObject use but useful for ResultsObjects
 
         # TODO: user-specified or remember location on screen
-        self.container.geometry("%dx%d+%d+%d" % (1040, 900, 600, 0))
+        self.geometry("%dx%d+%d+%d" % (1040, 900, 600, 0))
 
-    def set_save_pic(self, e):
-
-        pass  # overload in inheriting class
-
-    def open_video(self, e):
+    def on_left_click(self, e):
 
         pass  # overload in inheriting class
 
-    def refined_thumbs(self, e):
+    def on_left_double_click(self, e):
 
         pass  # overload in inheriting class
+
+    def on_right_click(self, e):
+
+        pass  # overload in inheriting class
+
+    def add_timestamp_labels(self, x):
+
+        pass  # these are only used by ImageWindow but the method needs to be called during the loop that
+        # fills the window with picture panels. ImageWindow overloads this method with its own that makes the labels.
 
     def picpanels_setup(self, x, y):
 
@@ -145,7 +151,7 @@ class PicsWindow:
         counter = 0
 
         for i in range(0, y):
-            container = Frame(self.container)
+            container = Frame(self)
 
             container.pack(side=TOP)
             for j in range(0, x):
@@ -153,13 +159,12 @@ class PicsWindow:
                 picpanel.number = counter
                 self.picture_panels.append(picpanel)
                 picpanel.pack(side=LEFT)
-                picpanel.bind("<Button-1>", self.set_save_pic)
-                picpanel.bind("<Double-Button-1>", self.open_video)
-                picpanel.bind("<Button-3>", self.refined_thumbs)
-                picpanel.bind("<Button-2>", self.refined_thumbs)
-
-                # picpanel.borderwidth=10
+                picpanel.bind("<Button-1>", self.on_left_click)
+                picpanel.bind("<Double-Button-1>", self.on_left_double_click)
+                picpanel.bind("<Button-3>", self.on_right_click)
                 counter += 1
+
+            self.add_timestamp_labels(x)  # this is just "pass" for a QueryWindow
 
     def set_videoobject(self, obj):
 
@@ -189,24 +194,12 @@ class PicsWindow:
                 i.configure(image=self.piclist[index], bg="light grey")
                 index += 1
 
-        try:
-            self.save_pic = self.video_object.images[4]
-            # random representative middle thumbnail if user doesn't select one at all
-        except IndexError:
-            pass  # will only get the error from above line if a results object has fewer than 5 results in it
-
-    def destroy(self):
-
-        self.container.destroy()  # TODO: refactor so this class *is* the container
-
 
 class ImageWindow(PicsWindow):
 
-    def picpanels_setup(self, x, y):
+    def add_timestamp_labels(self, x):
 
-        super().picpanels_setup(x, y)
-
-        timestamp_container = Frame(self.container)
+        timestamp_container = Frame(self)
         timestamp_container.pack(side=TOP, fill=BOTH, expand=YES)
         for j in range(0, x):
             timelabel = Label(timestamp_container, text="00:00:00")
@@ -217,6 +210,8 @@ class ImageWindow(PicsWindow):
 
         super().update_images()
         self.update_time_labels()  # only this interface needs time labels for the images
+        self.save_pic = self.video_object.images[4]
+        # random representative middle thumbnail if user doesn't select one at all
 
     def update_time_labels(self):
 
@@ -233,32 +228,16 @@ class ImageWindow(PicsWindow):
             i.configure(text="%s:%s" % (timestamps[cnt]))
             cnt += 1
 
-    def refined_thumbs(self, event):
+    def on_right_click(self, e):
 
-        """gets the time point from the widget corresponding to the event, tells the videoobject to update its
-        thumbnails, then runs self.update_images to display those new thumbnails"""
-
-        widget = event.widget
-        index = widget.number  # which picture panel
-        num = event.num  # mouse button
-
-        if num == 2:
-            coarse = True
-            print("requested coarser thumbnails")
-        else:
-            coarse = False
-            print("requested finer thumbnails")
-
-        t = self.video_object.time_points[
-            index]  # use the index of the picture label to look up the relevant time point in the videoobject
-        self.video_object.refine(t, coarse, index)
+        self.video_object.refine()
         self.update_images()
 
-    def open_video(self, event):
+    def on_left_double_click(self, event):
 
         os.startfile(self.video_object.path)
 
-    def set_save_pic(self, event):
+    def on_left_click(self, event):
 
         widget = event.widget
         index = widget.number
@@ -280,9 +259,9 @@ class QueryWindow(PicsWindow):
         # extra code to get the icons for fd/back arrow and put them in the picture panels
         super().__init__(parent, x, y, ph=ph)
 
-    def set_save_pic(self, event):
+    def on_left_click(self, event):
 
-        """overloaded to use os.startfile on releveant path from selected thumbnail"""
+        """uses os.startfile on releveant path from selected thumbnail"""
 
         widget = event.widget
         index = widget.number
@@ -294,7 +273,7 @@ class QueryWindow(PicsWindow):
         else:
             print("index beyond video list")
 
-    def refined_thumbs(self, event):
+    def on_right_click(self, event):
 
         """overloaded to query tags from the parent's database object"""
         print(len(self.picture_panels))
@@ -323,7 +302,8 @@ class QueryWindow(PicsWindow):
 
         # re-bind commands for first and last picture panels for use as forward/back button
 
-        null_method = lambda e: None  # for overriding functions of fd/back panels
+        def null_method():
+            pass  # for overriding functions of fd/back panels
 
         self.picture_panels[0].bind("<Button-1>", self.prev_image_set)
         self.picture_panels[0].bind("<Double-Button-1>", self.prev_image_set)
@@ -387,7 +367,11 @@ class ResultsObject:
         self.images = []
         self.paths = []
         self.placeholder_image = placeholder
-        self.add_batch()  # read in the first lot of results from the generator
+        try:
+            self.add_batch()  # read in the first lot of results from the generator
+        except StopIteration:
+            # no results were found
+            pass  # the placeholder images will remain
 
     def add_batch(self):
 
@@ -721,8 +705,6 @@ class MainWindow:
         result = self.db_manager.get_entry(key)
         self.key_to_update = key
         info_list = result.tag_group_1 + result.tag_group_2
-        print(f"info list is {info_list}")
-        print(result)
 
         for i in (self.category_container, self.extras_container):
 

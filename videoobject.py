@@ -4,9 +4,11 @@ from io import BytesIO
 import os
 import subprocess as sp
 from settings import SETTINGS
+from random import randint
 
 FFMPEG = SETTINGS["FFMPEG_PATH"]
 FFPROBE = SETTINGS["FFPROBE_PATH"]
+
 
 class VideoObject:
 
@@ -24,17 +26,23 @@ class VideoObject:
             self.time_points = self.get_time_points()
             self.images = self.get_thumbnails(self.time_points)
 
-    def refine(self, timepoint, coarse=False, index=4):
+    def refine(self):
 
-        self.time_points = self.get_time_points(timepoint, coarse, index)
+        """apply a small delta to the thumbnail time points to get different images"""
+
+        tp = self.get_time_points()
+        tp2 = [randint(-5, 5) + x for x in tp]
+        # check to make sure the random addition hasn't put the time outside of the video length
+        if tp2[0] < 0:
+            tp2[0] = 0.1
+        if tp2[-1] > self.duration:
+            tp2[-1] = self.duration - 1
+        self.time_points = tp2
         self.images = self.get_thumbnails(self.time_points)
 
     @staticmethod
     def get_initial_info(path):
 
-        #path = '''"{}"'''.format(path)  # needs extra quotes to work as command line argument
-        #cmd = "C:\\s\\ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 %s"\
-        #      % path
         cmd = f'''{FFPROBE} -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "{path}"'''
         pipe = sp.Popen(cmd, stdout=sp.PIPE, stderr=sp.PIPE, bufsize=10 ** 8)
         try:
@@ -61,8 +69,6 @@ class VideoObject:
 
         def get_image(timepoint):
 
-            #cmd = "C:\\s\\ffmpeg.exe -ss %f -i %s -f image2pipe -vframes 1 -s 320x240 -"\
-                  #% (timepoint, '''"{}"'''.format(self.path))
             cmd = f'''{FFMPEG} -ss {timepoint} -i "{self.path}" -f image2pipe -vframes 1 -s 320x240 -'''
             pipe = sp.Popen(cmd, stdout=sp.PIPE, stderr=sp.PIPE, bufsize=10 ** 8)
 
@@ -94,46 +100,26 @@ class VideoObject:
 
         return images_to_return
 
-    def get_time_points(self, timepoint=None, coarse=False, index=4):
+    def get_time_points(self):
 
         """returns 9 time points within self.duration, evenly spread with no other arguments or centred around time"""
 
-        if timepoint:
-            if index == 4:
-                if coarse:
-                    increment = self.increment * 4
-                else:
-                    increment = self.increment / 6.0
-            else:
-                increment = self.increment
-                # don't change the increment if an index other than 4 is selected, this "re-centres" the seeking
-            a = timepoint - (4 * increment)
-            if a < 0:
-                a = 0.1
-
-            self.increment = increment  # remembered between calls for finer thumbs moved from 150
-
-        else:
-            a = 0.1
-            increment = self.increment
-
+        a = 0.1
         times = []
 
         while len(times) < 9:
             times.append(a)
-            a += increment
+            a += self.increment
 
             if a > self.duration:
                 print("time beyond video end, truncating")
-                a -= increment
+                a -= self.increment
 
         return times
 
     @staticmethod
     def get_video_res(fullpath):
 
-        #cmd = '''C:\\s\\ffprobe -v error -select_streams v:0 -show_entries stream=height,width -of csv=s=x:p=0 "%s"'''\
-              #% fullpath
         cmd = f'''{FFPROBE} -v error -select_streams v:0 -show_entries stream=height,width -of csv=s=x:p=0 {fullpath}'''
         pipe = sp.Popen(cmd, stdout=sp.PIPE, stderr=sp.PIPE, bufsize=10 ** 8)
         info2, error = pipe.communicate()
