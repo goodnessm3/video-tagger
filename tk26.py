@@ -88,8 +88,9 @@ class ThumbGenerator:
         self.updater_running = False
         return
 
+class PicsWindow:
 
-class ImageWindow:
+    """Common base class for ImageWindow and QueryWindow"""
 
     def __init__(self, parent, x=3, y=3, ph=None):
 
@@ -118,58 +119,17 @@ class ImageWindow:
         # TODO: user-specified or remember location on screen
         self.container.geometry("%dx%d+%d+%d" % (1040, 900, 600, 0))
 
-    def set_videoobject(self, obj):
+    def set_save_pic(self, e):
 
-        self.index_from = 0
+        pass  # overload in inheriting class
 
-        self.video_object = obj
-        self.update_images()
+    def open_video(self, e):
 
-        if type(obj) == VideoObject:  # resultsobjects don't have filenames
-            filename = obj.filename
-            self.file_name_display.configure(text=filename)
-        else:
-            self.file_name_display.configure(text="Results")  # default
+        pass  # overload in inheriting class
 
-    def update_images(self):
+    def refined_thumbs(self, e):
 
-        """Gets images from self.videoobject, to be called after the video object updates itself"""
-        # if path:
-        # self.path = path #the path of the video being looked at
-        self.piclist = []  # clear to prevent storing old images forever
-
-        for i in self.video_object.images:
-            logo = ImageTk.PhotoImage(i)
-            self.piclist.append(logo)
-
-        self.update_time_labels()
-
-        index = self.index_from
-        for i in self.picture_panels:
-            if index < len(self.piclist):  # to cope with being passed a small query
-                i.configure(image=self.piclist[index], bg="light grey")
-                index += 1
-
-        try:
-            self.save_pic = self.video_object.images[4]
-            # random representative middle thumbnail if user doesn't select one at all
-        except IndexError:
-            pass  # will only get the error from above line if a results object has fewer than 5 results in it
-
-    def update_time_labels(self):
-
-        def timeconvert(fl):
-            m, s = divmod(round(fl), 60)
-            m = str(m).zfill(2)
-            s = str(s).zfill(2)
-            return m, s
-
-        timestamps = [timeconvert(x) for x in self.video_object.time_points]
-
-        cnt = 0
-        for i in self.time_labels:
-            i.configure(text="%s:%s" % (timestamps[cnt]))
-            cnt += 1
+        pass  # overload in inheriting class
 
     def picpanels_setup(self, x, y):
 
@@ -201,13 +161,77 @@ class ImageWindow:
                 # picpanel.borderwidth=10
                 counter += 1
 
-            if type(self) == ImageWindow:  # only put timestamp labels if it's in tagging mode
-                timestamp_container = Frame(self.container)
-                timestamp_container.pack(side=TOP, fill=BOTH, expand=YES)
-                for j in range(0, x):
-                    timelabel = Label(timestamp_container, text="00:00:00")
-                    timelabel.pack(side=LEFT, expand=YES)
-                    self.time_labels.append(timelabel)
+    def set_videoobject(self, obj):
+
+        self.index_from = 0
+        self.video_object = obj
+        self.update_images()
+
+        if type(obj) == VideoObject:  # resultsobjects don't have filenames
+            filename = obj.filename
+            self.file_name_display.configure(text=filename)
+        else:
+            self.file_name_display.configure(text="Results")  # default
+
+    def update_images(self):
+
+        """Gets images from self.videoobject, to be called after the video object updates itself"""
+
+        self.piclist = []  # clear to prevent storing old images forever
+
+        for i in self.video_object.images:
+            logo = ImageTk.PhotoImage(i)
+            self.piclist.append(logo)
+
+        index = self.index_from
+        for i in self.picture_panels:
+            if index < len(self.piclist):  # to cope with being passed a small query
+                i.configure(image=self.piclist[index], bg="light grey")
+                index += 1
+
+        try:
+            self.save_pic = self.video_object.images[4]
+            # random representative middle thumbnail if user doesn't select one at all
+        except IndexError:
+            pass  # will only get the error from above line if a results object has fewer than 5 results in it
+
+    def destroy(self):
+
+        self.container.destroy()  # TODO: refactor so this class *is* the container
+
+
+class ImageWindow(PicsWindow):
+
+    def picpanels_setup(self, x, y):
+
+        super().picpanels_setup(x, y)
+
+        timestamp_container = Frame(self.container)
+        timestamp_container.pack(side=TOP, fill=BOTH, expand=YES)
+        for j in range(0, x):
+            timelabel = Label(timestamp_container, text="00:00:00")
+            timelabel.pack(side=LEFT, expand=YES)
+            self.time_labels.append(timelabel)
+
+    def update_images(self):
+
+        super().update_images()
+        self.update_time_labels()  # only this interface needs time labels for the images
+
+    def update_time_labels(self):
+
+        def timeconvert(fl):
+            m, s = divmod(round(fl), 60)
+            m = str(m).zfill(2)
+            s = str(s).zfill(2)
+            return m, s
+
+        timestamps = [timeconvert(x) for x in self.video_object.time_points]
+
+        cnt = 0
+        for i in self.time_labels:
+            i.configure(text="%s:%s" % (timestamps[cnt]))
+            cnt += 1
 
     def refined_thumbs(self, event):
 
@@ -245,20 +269,16 @@ class ImageWindow:
 
         widget.configure(bg="red")
 
-    def destroy(self):
 
-        self.container.destroy()
-
-
-class QueryWindow(ImageWindow):
+class QueryWindow(PicsWindow):
 
     def __init__(self, parent, x, y, mainwindow_ref, ph):
 
         self.right_arrow_icon = mainwindow_ref.right_arrow_icon
         self.left_arrow_icon = mainwindow_ref.left_arrow_icon
         self.mainwindow_ref = mainwindow_ref
+        # extra code to get the icons for fd/back arrow and put them in the picture panels
         super().__init__(parent, x, y, ph=ph)
-        self.index_from = 0  # used for multiple screens worth of returned results
 
     def set_save_pic(self, event):
 
@@ -301,16 +321,20 @@ class QueryWindow(ImageWindow):
 
         super().picpanels_setup(x, y)
 
+        # re-bind commands for first and last picture panels for use as forward/back button
+
+        null_method = lambda e: None  # for overriding functions of fd/back panels
+
         self.picture_panels[0].bind("<Button-1>", self.prev_image_set)
         self.picture_panels[0].bind("<Double-Button-1>", self.prev_image_set)
-        self.picture_panels[0].bind("<Button-2>", self.null_method)
-        self.picture_panels[0].bind("<Button-3>", self.null_method)
+        self.picture_panels[0].bind("<Button-2>", null_method)
+        self.picture_panels[0].bind("<Button-3>", null_method)
         self.picture_panels[0].configure(image=self.left_arrow_icon, bg="light grey")
 
         self.picture_panels[-1].bind("<Button-1>", self.next_image_set)
         self.picture_panels[-1].bind("<Double-Button-1>", self.next_image_set)
-        self.picture_panels[-1].bind("<Button-2>", self.null_method)
-        self.picture_panels[-1].bind("<Button-3>", self.null_method)
+        self.picture_panels[-1].bind("<Button-2>", null_method)
+        self.picture_panels[-1].bind("<Button-3>", null_method)
         self.picture_panels[-1].configure(image=self.right_arrow_icon, bg="light grey")
 
         self.picture_panels.pop()
@@ -346,22 +370,6 @@ class QueryWindow(ImageWindow):
 
         self.mainwindow_ref.deselect_update()
         self.file_name_display.configure(text="Results")  # clear selection
-
-    def null_method(self, event):
-
-        pass
-
-    def update_time_labels(self):
-
-        """overloaded from prev. class to do nothing"""
-
-        pass
-
-    def open_video(self, event):
-
-        """overloaded to do nothing, single click opens video instead via overloaded set_save_image command"""
-
-        pass
 
 
 class ResultsObject:
