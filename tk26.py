@@ -1,5 +1,5 @@
 from tkinter import *
-from PIL import Image, ImageTk
+from PIL import Image, ImageTk, UnidentifiedImageError
 from io import BytesIO
 import threading
 import os
@@ -185,7 +185,10 @@ class PicsWindow(Toplevel):
         self.piclist = []  # clear to prevent storing old images forever
 
         for i in self.video_object.images:
-            logo = ImageTk.PhotoImage(i)
+            if i == self.placeholder_image:
+                logo = i  # otherwise it will try to make a PhotoImage but placeholder is already a PhotoImage
+            else:
+                logo = ImageTk.PhotoImage(i)
             self.piclist.append(logo)
 
         index = self.index_from
@@ -381,8 +384,15 @@ class ResultsObject:
         new_images = []
         for qq in new_batch:
 
-            im = Image.open(BytesIO(qq[0])).resize((160, 120))
+            pth = qq[1]  # in case need to print path name for image getting error
+
+            try:
+                im = Image.open(BytesIO(qq[0])).resize((160, 120))
+            except UnidentifiedImageError:
+                im = self.placeholder_image
+                print(f"Error getting image for {pth}")
             new_images.append(im)
+
 
         new_paths = [x[1] for x in new_batch]
         self.images.extend(new_images)
