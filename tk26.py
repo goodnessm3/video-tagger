@@ -215,13 +215,8 @@ class ImageWindow(PicsWindow):
 
     def update_time_labels(self):
 
-        def timeconvert(fl):
-            m, s = divmod(round(fl), 60)
-            m = str(m).zfill(2)
-            s = str(s).zfill(2)
-            return m, s
-
-        timestamps = [timeconvert(x) for x in self.video_object.time_points]
+        timestamps = [VideoObject.timeconvert(x) for x in self.video_object.time_points]
+        # a staticmethod of VideoObject
 
         cnt = 0
         for i in self.time_labels:

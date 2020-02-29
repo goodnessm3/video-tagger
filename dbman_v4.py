@@ -411,7 +411,7 @@ class DBManager:
             where skipped is not 1
             and score_1 is null
             and score_2 is null
-            order by duration''')
+            order by created desc''')
             # and width > 959  additional constraint for only HD stuff
 
             # and duration not null
@@ -499,7 +499,7 @@ class DBManager:
         known = set([x[0] for x in self.db_cursor.fetchall()])  # better than looking up each indivudal name in SQL
         verified = set()  # used at end to check if any files are missing
         for head, folders, files in os.walk(toplevel):
-            print(f"{head}, {folders}, {files}")
+            # print(f"{head}, {folders}, {files}")
             if "__" in head:
                 print("Skipped folder {}".format(head))
                 continue  # skip folders prefixed with __

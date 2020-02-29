@@ -1,5 +1,5 @@
 from tkinter import *
-from PIL import Image
+from PIL import Image, ImageDraw, ImageFont
 from io import BytesIO
 import os
 import subprocess as sp
@@ -75,6 +75,7 @@ class VideoObject:
             return pipe
 
         images_to_return = []
+        pipes = []
 
         for i in times:
             # it seems inefficient to load up ffmpeg multiple times but this allows direct seeking
@@ -82,11 +83,14 @@ class VideoObject:
             # images can be got with one call to ffmpeg but it's much slower and CPU intensive
             # as the entire video must be decoded rather than seeking by keyframe.
             data = get_image(i)
+            pipes.append(data)
+
+        for p in pipes:
             try:
-                imagedata2 = data.communicate(timeout=15)
+                imagedata2 = p.communicate(timeout=15)
             except sp.TimeoutExpired:
                 print("ffmpeg timed out getting thumbnails")
-                data.kill()
+                p.kill()
                 return []
             imagedata = imagedata2[0]
             flo = BytesIO(imagedata)
@@ -104,7 +108,7 @@ class VideoObject:
 
         """returns 9 time points within self.duration, evenly spread with no other arguments or centred around time"""
 
-        a = 0.1
+        a = 3.0
         times = []
 
         while len(times) < 9:
@@ -120,8 +124,47 @@ class VideoObject:
     @staticmethod
     def get_video_res(fullpath):
 
-        cmd = f'''{FFPROBE} -v error -select_streams v:0 -show_entries stream=height,width -of csv=s=x:p=0 {fullpath}'''
+        cmd = f'''{FFPROBE} -v error -select_streams v:0 -show_entries stream=height,width -of csv=s=x:p=0 "{fullpath}"'''
         pipe = sp.Popen(cmd, stdout=sp.PIPE, stderr=sp.PIPE, bufsize=10 ** 8)
         info2, error = pipe.communicate()
         info = info2.decode("utf-8")
         return info.rstrip("\r\n")
+
+    def write_contact_sheet(self, directory):
+
+        """writes a 3x3 thumbnail sheet using the generated images to the given directory path"""
+
+        container = Image.new("RGB", (1000, 850))
+        ctx = ImageDraw.Draw(container)
+        font = ImageFont.truetype("arial.ttf", 20)
+        font2 = ImageFont.truetype("arial.ttf", 16)
+
+        it = iter(self.images)
+        it2 = iter(["{}:{}".format(*self.timeconvert(x)) for x in self.time_points])
+        for y in (100, 350, 600):
+            for x in (10, 340, 670):
+                container.paste(next(it), (x,y))
+                ctx.rectangle((x, y, x + 45, y + 20), fill=(0, 0, 0))  # to write the timestamp text
+                ctx.text((x+1, y+1), next(it2), font=font2)
+
+        ctx.text((10, 10), self.filename, font=font)
+        extra_info = f'''{self.get_video_res(self.path)},  {"{}:{}".format(*self.timeconvert(self.duration))}'''
+        ctx.text((10, 50), extra_info, font=font)
+
+        savepath = os.path.join(directory, self.filename) + ".jpg"
+        container.save(savepath)
+
+        return container
+
+    @staticmethod
+    def timeconvert(fl):
+
+        """convert float to mm:ss"""
+
+        m, s = divmod(round(fl), 60)
+        m = str(m).zfill(2)
+        s = str(s).zfill(2)
+        return m, s
+
+
+
