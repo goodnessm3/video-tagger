@@ -16,6 +16,9 @@ Note this is designed to work with Windows type paths"""
 
 TOP_LEVEL = SETTINGS["TOP_LEVEL"]
 SQLPATH = SETTINGS["SQLPATH"]
+# the number of rows and columns (x, y) for the tiles in the query window results pane
+QUERY_X = SETTINGS["QUERY_X"]
+QUERY_Y = SETTINGS["QUERY_Y"]
 
 
 class ThumbGenerator:
@@ -101,16 +104,16 @@ class PicsWindow(Toplevel):
         self.filename_font = font.Font(family="Helvetica", size="12")
         self.placeholder_image = ph
         self.parent = parent
-        self.title("thumbnails")
+        self.title("Results")  # this window title is changed by e.g. right clicking on query results
 
         self.path = None
         self.piclist = []  # to save reference to photoimages
         self.picture_panels = []  # reference to the labels showing the images
         self.time_labels = []  # timestamps to be displayed under thumbnails
         self.video_object = None  # reference to the video object currently displayed
-        self.file_name_display = Label(self, text="Results", bg="light grey", font=self.filename_font)
+        # self.file_name_display = Label(self, text="Results", bg="light grey", font=self.filename_font)
         # default text is "results" but always overwritten if it is a VideoObject
-        self.file_name_display.pack(side=TOP)
+        # self.file_name_display.pack(side=TOP)
 
         self.picpanels_setup(x, y)
         self.save_pic = None  # to be queried by parent frame during save process
@@ -118,7 +121,7 @@ class PicsWindow(Toplevel):
         self.index_from = 0  # used in update_images, not relevant for VideoObject use but useful for ResultsObjects
 
         # TODO: user-specified or remember location on screen
-        self.geometry("%dx%d+%d+%d" % (1040, 900, 600, 0))
+        #self.geometry("%dx%d+%d+%d" % (1040, 900, 600, 0))
 
     def on_left_click(self, e):
 
@@ -139,31 +142,39 @@ class PicsWindow(Toplevel):
 
     def picpanels_setup(self, x, y):
 
-        """creates the 9 picture panels and appends them to self.picture_panels. Binds commands to the label widgets"""
+        """creates the picture panels and appends them to self.picture_panels. Binds commands to the label widgets"""
 
         pic = self.placeholder_image
         self.piclist.append(pic)
 
-        img_height = int(780 / x)
-        img_width = int(1020 / y)
+        #img_height = int(720 / x)
+        #img_width = int(1000 / y)
+        img_height = 140
+        img_width = 180
+
         # these numbers make a panel slightly bigger than a 320x240 video thumbnail to leave a border
+        # panel size has to be manually specified because the placeholder and arrow images are smaller than a
+        # thumbnail, so packing won't give a nice grid due to non-uniform image size, so we compute the geometry here
 
         counter = 0
 
-        for i in range(0, y):
-            container = Frame(self)
+        for i in range(0, y):  # for each row
 
-            container.pack(side=TOP)
-            for j in range(0, x):
+            container = Frame(self)  # make a row frame that contains the thumbnail tiles
+
+            for j in range(0, x):  # for each column/number of tiles in the horizontal direction
                 picpanel = Label(container, height=img_height, width=img_width, image=pic, bg="light grey")
+                #picpanel = Label(container, image=pic, bg="light grey")
                 picpanel.number = counter
                 self.picture_panels.append(picpanel)
-                picpanel.pack(side=LEFT)
+                picpanel.pack(side=LEFT, fill=BOTH, expand=YES)
                 picpanel.bind("<Button-1>", self.on_left_click)
                 picpanel.bind("<Double-Button-1>", self.on_left_double_click)
                 picpanel.bind("<Button-3>", self.on_right_click)
                 counter += 1
 
+            container.pack(side=TOP, fill=BOTH, expand=YES)
+            # make a row of thumbnails, and pack it against the top of the frame
             self.add_timestamp_labels(x)  # this is just "pass" for a QueryWindow
 
     def set_videoobject(self, obj):
@@ -174,9 +185,11 @@ class PicsWindow(Toplevel):
 
         if type(obj) == VideoObject:  # resultsobjects don't have filenames
             filename = obj.filename
-            self.file_name_display.configure(text=filename)
+            # self.file_name_display.configure(text=filename)
+            self.title(filename)
         else:
-            self.file_name_display.configure(text="Results")  # default
+            #self.file_name_display.configure(text="Results")  # default
+            self.title("Results")
 
     def update_images(self):
 
@@ -290,7 +303,8 @@ class QueryWindow(PicsWindow):
             video_path = self.video_object.paths[index]
             video_key = video_path  # replace above, use full path not just filename
             self.mainwindow_ref.update_tags(video_key)
-            self.file_name_display.configure(text=video_path)
+            # self.file_name_display.configure(text=video_path)
+            self.title(video_path)
         else:
             print("index beyond video list")
 
@@ -336,7 +350,8 @@ class QueryWindow(PicsWindow):
 
         self.update_images()
         self.mainwindow_ref.deselect_update()
-        self.file_name_display.configure(text="Results")  # clear selection
+        # self.file_name_display.configure(text="Results")  # clear selection
+        self.title("Results")
 
     def prev_image_set(self, event):
 
@@ -347,7 +362,8 @@ class QueryWindow(PicsWindow):
             print("can't go back any further")
 
         self.mainwindow_ref.deselect_update()
-        self.file_name_display.configure(text="Results")  # clear selection
+        # self.file_name_display.configure(text="Results")  # clear selection
+        self.title("Results")
 
 
 class ResultsObject:
@@ -393,7 +409,6 @@ class ResultsObject:
                 print(f"Error getting image for {pth}")
             new_images.append(im)
 
-
         new_paths = [x[1] for x in new_batch]
         self.images.extend(new_images)
         self.paths.extend(new_paths)
@@ -425,6 +440,11 @@ class MainWindow:
         self.found_video = ""  # the name of the video being played in some media player for scan mode
         self.thumbgenerator = None  # this is instantiated in another function
         self.scan_task_id = None  # reference to the scanning task in tkinter event loop for cancellation
+
+        self.xtiles = QUERY_X
+        self.ytiles = QUERY_Y  # store geometry in this object in case the user updates it via the interface
+        # TODO: interface menu to change the size of the query window?
+        self.tile_count = self.xtiles * self.ytiles - 2  # grid size, minus 2 for the forward and back arrows
 
         self.left_container = Frame(parent)
         self.right_container = Frame(parent)
@@ -670,7 +690,8 @@ class MainWindow:
         self.query_mode = True
         self.tag_mode = False
         self.picpanel.destroy()
-        self.picpanel = QueryWindow(parent=self.parent, x=6, y=6, mainwindow_ref=self, ph=self.placeholder_image)
+        self.picpanel = QueryWindow(parent=self.parent, x=self.xtiles, y=self.ytiles,
+                                    mainwindow_ref=self, ph=self.placeholder_image)
 
     def start_tag_mode(self, randomly=False):
 
@@ -747,7 +768,7 @@ class MainWindow:
 
         queryls = self.get_button_values()
 
-        results = self.db_manager.get_matches(*queryls)
+        results = self.db_manager.get_matches(*queryls, batch_size=self.tile_count)
 
         obj = ResultsObject(results, placeholder=self.placeholder_image)
         self.picpanel.set_videoobject(obj)

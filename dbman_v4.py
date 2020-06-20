@@ -236,31 +236,6 @@ class DBManager:
             print("NAME COLLISION for {}".format(filename))
         return results[0][0]  # a list of tuples containing one value
 
-    def get_matches_old(self, tag_group_1, tag_group_2, batch_size=34):
-
-        """GENERATOR:Takes a pair of lists of tags, does the bitwise and search, returns all
-        the matches as whole database rows"""
-
-        gqscore, eqscore = self.tags_to_ints(tag_group_1, tag_group_2)
-        if not self.filter_directory:
-            self.db_cursor.execute('''SELECT thumbnail, fullpath from videos 
-                                    where score_1 & ? = ? and score_2 & ? = ? 
-                                    order by random()''',
-                                   (gqscore, gqscore, eqscore, eqscore))
-        else:  # also filter results by top dir
-            self.db_cursor.execute('''SELECT thumbnail, fullpath from videos 
-                                    where score_1 & ? = ? and score_2 & ? = ? and
-                                    directory = ? 
-                                    order by random()''',
-                                   (gqscore, gqscore, eqscore, eqscore, self.filter_directory))
-
-        out = self.db_cursor.fetchmany(batch_size)
-        while not out == []:
-            yield out
-            out = self.db_cursor.fetchmany(batch_size)
-
-        return
-
     def get_matches(self, tag_group_1, tag_group_2, batch_size=34):
 
         offset = 0
