@@ -5,6 +5,9 @@ from hashlib import md5
 from videoobject import VideoObject
 import time  # need for time of deletion in removed db
 import json
+from shutil import move
+from settings import SETTINGS
+DUPES_FOLDER = SETTINGS["DUPES_FOLDER"]
 
 """Module for interfacing with the sqlite database. This internally takes care of the conversion of tags to
 bitmaps and back again, so the calling interface only sees lists of tags. Handles scanning for new files and
@@ -501,7 +504,7 @@ class DBManager:
         for head, folders, files in os.walk(toplevel):
             # print(f"{head}, {folders}, {files}")
             if "__" in head:
-                print("Skipped folder {}".format(head))
+                # print("Skipped folder {}".format(head))
                 continue  # skip folders prefixed with __
             for filename in files:
                 _, ext = os.path.splitext(filename)
@@ -540,6 +543,11 @@ class DBManager:
                     known.add(fullpath)  # need to add it to the set otherwise walker will try to add multiple times
                     verified.add(fullpath)
                 else:
+                    try:
+                        move(fullpath, DUPES_FOLDER)
+                        print(f"{fullpath} is not new and was moved to the dupes folder.")
+                    except Exception as e:
+                        print(e)
                     verified.add(fullpath)
                     continue
 

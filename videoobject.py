@@ -50,7 +50,7 @@ class VideoObject:
         self.images = self.get_thumbnails(self.time_points)
 
     @staticmethod
-    def get_initial_info(path, no_thumbnails):
+    def get_initial_info(path, no_thumbnails=9):
 
         cmd = f'''{FFPROBE} -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "{path}"'''
         pipe = sp.Popen(cmd, stdout=sp.PIPE, stderr=sp.PIPE, bufsize=10 ** 8)
