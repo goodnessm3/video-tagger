@@ -147,10 +147,12 @@ class PicsWindow(Toplevel):
         pic = self.placeholder_image
         self.piclist.append(pic)
 
-        #img_height = int(720 / x)
-        #img_width = int(1000 / y)
-        img_height = 140
-        img_width = 180
+        if x == y == 3:  # set up the prescribed size for the tagging interface, in this case the window is const. size
+            img_height = int(720 / x)
+            img_width = int(1000 / y)
+        else:  # user-defined results grid size, in this case the window changes size to accommodate the thumbnails
+            img_height = 130
+            img_width = 170
 
         # these numbers make a panel slightly bigger than a 320x240 video thumbnail to leave a border
         # panel size has to be manually specified because the placeholder and arrow images are smaller than a
