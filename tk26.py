@@ -8,7 +8,7 @@ from collections import deque
 from tkinter import simpledialog, font, filedialog
 from dbman_v4 import DBManager
 from videoobject import VideoObject
-from settings import SETTINGS  # a dict containing values stored in the json file
+from settings import SETTINGS, save_settings  # a dict containing values stored in the json file
 
 """The main program file, will create a database if necessary on first-time setup when none exists.
 Specify settings in settings.json
@@ -120,8 +120,7 @@ class PicsWindow(Toplevel):
 
         self.index_from = 0  # used in update_images, not relevant for VideoObject use but useful for ResultsObjects
 
-        # TODO: user-specified or remember location on screen
-        #self.geometry("%dx%d+%d+%d" % (1040, 900, 600, 0))
+        self.geometry(SETTINGS["GEOMETRY_IMAGEWINDOW"])
 
     def on_left_click(self, e):
 
@@ -422,8 +421,7 @@ class MainWindow:
         self.button_font = font.Font(family="Helvetica", size="14")
         self.parent = parent  # ref held for starting query mode or making new windows outside of init
 
-        # TODO: user-specified or remembered geometry
-        # self.parent.geometry("%dx%d+%d+%d" % (1000, 600, 1925, -160))
+        self.parent.geometry(SETTINGS["GEOMETRY_MAIN"])
         self.db_manager = DBManager(SQLPATH)
         self.tag_group_1, self.tag_group_2, self.extensions = self.db_manager.get_tag_settings()
 
@@ -776,6 +774,10 @@ class MainWindow:
         self.picpanel.set_videoobject(obj)
 
     def on_quit(self):
+
+        SETTINGS["GEOMETRY_MAIN"] = self.parent.geometry()
+        SETTINGS["GEOMETRY_IMAGEWINDOW"] = self.picpanel.geometry()
+        save_settings()  # remember window geometries
 
         self.db_manager.commit_changes()
         self.parent.destroy()
