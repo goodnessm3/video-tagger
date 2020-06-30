@@ -7,7 +7,7 @@ import time
 from collections import deque
 from tkinter import simpledialog, font, filedialog
 from dbman_v4 import DBManager
-from videoobject import VideoObject
+from videoobject import VideoObject, BadVideoException
 from settings import SETTINGS, save_settings  # a dict containing values stored in the json file
 
 """The main program file, will create a database if necessary on first-time setup when none exists.
@@ -83,11 +83,16 @@ class ThumbGenerator:
                 # TODO: cope with unprintable chrs
             except UnicodeEncodeError:
                 print("getting a videoobject for unprintable filename")
-            obj = VideoObject(path)
-            if obj.duration is None:
-                print("couldn't get this videoobject")
-            else:
-                self.deque.appendleft(obj)
+            try:
+                obj = VideoObject(path)
+            except BadVideoException:
+                print("failed for {}".format(path))
+                with open("broken_videos.txt", "a") as f:
+                    f.write(path)  # keep a record of broken files
+                    f.write("\n")
+                continue
+
+            self.deque.appendleft(obj)
         self.updater_running = False
         return
 
@@ -138,6 +143,10 @@ class PicsWindow(Toplevel):
 
         pass  # these are only used by ImageWindow but the method needs to be called during the loop that
         # fills the window with picture panels. ImageWindow overloads this method with its own that makes the labels.
+
+    def select_image(self, x):
+
+        pass  # for selecting an image by numpad keypress instead of mouse
 
     def picpanels_setup(self, x, y):
 
@@ -253,12 +262,27 @@ class ImageWindow(PicsWindow):
 
         widget = event.widget
         index = widget.number
-        self.save_pic = self.video_object.images[index]
+        self.set_save_pic(index)
 
+    def select_image(self, event):
+
+        """select an image in the grid on the basis of a numpad keypress. Note that the number
+        has to be translated because the position of the image corresponds to the POSITION of the key,
+        not the numerical value"""
+
+        dc = {7:0, 8:1, 9:2, 4:3, 5:4, 6:5, 1:6, 2:7, 3:8}
+        # translate to the right position and subtract 1 because we are indexing from 0
+        num = int(event.char)  # convert the keypress to its int value
+        self.set_save_pic(dc[num])  # look up the index from the key that was actually pressed
+
+    def set_save_pic(self, index):
+
+        """Index is 0-8 corresponding to the positions on the 3x3 thumbnail grid"""
         for i in self.picture_panels:
             i.configure(bg="light grey")  # reset everything rather than having to hold a ref to last
 
-        widget.configure(bg="red")
+        self.save_pic = self.video_object.images[index]
+        self.picture_panels[index].configure(bg="red")
 
 
 class QueryWindow(PicsWindow):
@@ -531,7 +555,14 @@ class MainWindow:
             self.add_button(container=self.extras_container, name=entry)
         self.arrows_container.pack()
 
+        self.setup_num_bindings()  # bind numeric keypad to thumbnail 1-9 for selection while tagging
+
         self.start_query_mode()
+
+    def setup_num_bindings(self):
+
+        for x in range(1,10):  # keys 1...9 inclusive
+            self.parent.bind(str(x), lambda e: self.picpanel.select_image(e))
 
     def add_button(self, container, name=None):  # name arg for pre-made names read in from saved settings
 

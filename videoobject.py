@@ -60,13 +60,16 @@ class VideoObject:
         except sp.TimeoutExpired:
             print("ffmpeg timed out getting info")
             pipe.kill()
-            return None, None
+            # return None, None
+            raise BadVideoException(f"ffmpeg could not read the file at {path}")
         try:
             duration = float(info)
         except:
             print("error getting video info")
             print(error)
-            return None, None
+            # return None, None
+            raise BadVideoException(f"ffmpeg could not read the file at {path}")
+            # raise proper exception rather than just returning none
 
         increment = duration / float(no_thumbnails + 1)
 
