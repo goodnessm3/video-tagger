@@ -5,8 +5,8 @@ from hashlib import md5
 from videoobject import VideoObject
 import time  # need for time of deletion in removed db
 import json
-from shutil import move
-from settings import SETTINGS
+from shutil import move, Error
+from settings import SETTINGS, DELETION_WHITELIST
 DUPES_FOLDER = SETTINGS["DUPES_FOLDER"]
 TRASH_FOLDER = SETTINGS["TRASH_FOLDER"]
 
@@ -575,23 +575,37 @@ class DBManager:
 
     def free_up_space(self, amount):
 
-        """Free space in the main videos directory by moving videos that were skipped for tagging to the destination.
+        """Free space in the main videos directory by moving videos that were skipped for tagging to the trash folder.
         e.g. the destination dir can be on a different drive or just somewhere outside the library."""
 
-        self.db_cursor.execute('''select * from videos where skipped = 1 order by filesize''')
+        allowed_dirs = iter(DELETION_WHITELIST)  # the allowed directories to delete from
+        dirct = next(allowed_dirs)
+        self.db_cursor.execute('''select * from videos where skipped = 1 and directory = ? order by filesize''',
+                               (dirct,))
         # throw out the smallest videos first
         res = iter(self.db_cursor.fetchall())
         total = 0  # keep track of how much has been deleted and only delete the minimum necessary
         while total < amount:  # amount is bytes of data to free up
-            x = next(res)  # can't use a for loop because we need to check amount deleted after every entry
+            try:
+                x = next(res)  # can't use a for loop because we need to check amount deleted after every entry
+            except StopIteration:  # time to move to the next directory down
+                dirct = next(allowed_dirs)
+                self.db_cursor.execute('''select * from videos where skipped = 1 and directory = ? order by filesize''',
+                                       (dirct,))
+                res = iter(self.db_cursor.fetchall())
+                continue  # go back to the top of the loop, there is a chance that this next directory has no skipped
+                # files in it so then we'll need to advance to the next directory along
             q = self.dbrow(*x, None)  # passing None as the thumbnail because we don't need it
             # making it into a namedtuple/dbrow means we can now access attributes by column name
             fsize = q.filesize
             fullpath = q.fullpath
-            move(fullpath, TRASH_FOLDER)
-            self.remove_video(fullpath)  # may as well do this now as we know it's being "deleted"
-            total += fsize
-            print(f"Moved {fullpath} to the trash folder.")
-        print(f"Done, moved {total} B of data to the trash folder.")
+            try:
+                move(fullpath, TRASH_FOLDER)
+                self.remove_video(fullpath)  # may as well do this now as we know it's being "deleted"
+                total += fsize
+                print(f"Moving files... ({total} / {amount})", end="\r")  # end = carriage return overwrites the line
+            except Error as e:  # "Error" comes from the shutil module
+                print(e)  # e.g. might run into duplicate file names, just print the exception and do nothing
+        print(f"Done, moved {round(total/(1024**3), 2)} GB of data to the trash folder.")
         self.db.commit()
 
