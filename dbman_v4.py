@@ -8,6 +8,7 @@ import json
 from shutil import move
 from settings import SETTINGS
 DUPES_FOLDER = SETTINGS["DUPES_FOLDER"]
+TRASH_FOLDER = SETTINGS["TRASH_FOLDER"]
 
 """Module for interfacing with the sqlite database. This internally takes care of the conversion of tags to
 bitmaps and back again, so the calling interface only sees lists of tags. Handles scanning for new files and
@@ -43,7 +44,7 @@ class DBManager:
             self.db.executescript(setup_script)
 
         self.db_cursor = self.db.cursor()
-        self.dbrow = self.setup_dbrow()
+        self.dbrow = self.setup_dbrow()  # this function returns a namedtuple
         self.tag_group_1 = []
         self.tag_group_2 = []
         self.tag_group_1_rev = {}
@@ -571,3 +572,26 @@ class DBManager:
         self.db_cursor.execute('''delete from videos where fullpath = ?''', (fullpath,))
 
         print("{} was moved to the deletions table".format(fullpath))
+
+    def free_up_space(self, amount):
+
+        """Free space in the main videos directory by moving videos that were skipped for tagging to the destination.
+        e.g. the destination dir can be on a different drive or just somewhere outside the library."""
+
+        self.db_cursor.execute('''select * from videos where skipped = 1 order by filesize''')
+        # throw out the smallest videos first
+        res = iter(self.db_cursor.fetchall())
+        total = 0  # keep track of how much has been deleted and only delete the minimum necessary
+        while total < amount:  # amount is bytes of data to free up
+            x = next(res)  # can't use a for loop because we need to check amount deleted after every entry
+            q = self.dbrow(*x, None)  # passing None as the thumbnail because we don't need it
+            # making it into a namedtuple/dbrow means we can now access attributes by column name
+            fsize = q.filesize
+            fullpath = q.fullpath
+            move(fullpath, TRASH_FOLDER)
+            self.remove_video(fullpath)  # may as well do this now as we know it's being "deleted"
+            total += fsize
+            print(f"Moved {fullpath} to the trash folder.")
+        print(f"Done, moved {total} B of data to the trash folder.")
+        self.db.commit()
+

@@ -492,7 +492,11 @@ class MainWindow:
 
         self.scan_changes_button = Button(self.left_container)
         self.scan_changes_button.configure(text="Scan for new files", command=lambda: self.scan_for_new_files())
-        self.scan_changes_button.pack()
+        self.scan_changes_button.pack()  # TODO not lambdas
+
+        self.free_space_button = Button(self.left_container)
+        self.free_space_button.configure(text="Free up library space", command=self.free_space)
+        self.free_space_button.pack()
 
         self.category_container = Frame(self.right_container, borderwidth=5, relief=RIDGE)
         self.extras_container = Frame(self.right_container, borderwidth=5, relief=RIDGE)
@@ -818,6 +822,21 @@ class MainWindow:
         """Asks the dbmanager to walk the directory and add new files it finds"""
 
         self.db_manager.scan_for_new_files(TOP_LEVEL)
+
+    def free_space(self):
+
+        """Free up space in the main library by moving files to a trash directory defined in settings.json"""
+
+        amt = simpledialog.askstring("", "Space to free up (GB)")
+        if not amt:
+            return  # user cancelled
+        try:
+            amount = float(amt)
+        except ValueError:
+            print(f"Problem converting number {amt} to float")
+            return
+        amount = amount * (1024 * 1024 * 1024)  # gigs to bytes
+        self.db_manager.free_up_space(amount)
 
     def select_directory(self):
 
