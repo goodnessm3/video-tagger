@@ -475,28 +475,28 @@ class MainWindow:
         self.picpanel = ImageWindow(parent, ph=self.placeholder_image)
 
         self.query_button = Button(self.left_container)
-        self.query_button.configure(text="Query mode", command=lambda: self.start_query_mode())
-        self.query_button.pack()
+        self.query_button.configure(text="Query mode", command=self.start_query_mode)
+        self.query_button.pack(fill=BOTH, expand=YES)
 
         self.tagging_button = Button(self.left_container)
-        self.tagging_button.configure(text="Tagging mode", command=lambda: self.start_tag_mode())
-        self.tagging_button.pack()
+        self.tagging_button.configure(text="Tagging mode", command=self.start_tag_mode)
+        self.tagging_button.pack(fill=BOTH, expand=YES)
 
         self.r_tagging_button = Button(self.left_container)
         self.r_tagging_button.configure(text="Tag randomly", command=lambda: self.start_tag_mode(True))
-        self.r_tagging_button.pack()
+        self.r_tagging_button.pack(fill=BOTH, expand=YES)
 
         self.select_dir_button = Button(self.left_container)
-        self.select_dir_button.configure(text="Directory...", command=lambda: self.select_directory())
-        self.select_dir_button.pack()
+        self.select_dir_button.configure(text="Directory...", command=self.select_directory)
+        self.select_dir_button.pack(fill=BOTH, expand=YES)
 
         self.scan_changes_button = Button(self.left_container)
-        self.scan_changes_button.configure(text="Scan for new files", command=lambda: self.scan_for_new_files())
-        self.scan_changes_button.pack()  # TODO not lambdas
+        self.scan_changes_button.configure(text="Scan for new files", command=self.scan_for_new_files)
+        self.scan_changes_button.pack(fill=BOTH, expand=YES)
 
         self.free_space_button = Button(self.left_container)
         self.free_space_button.configure(text="Free up library space", command=self.free_space)
-        self.free_space_button.pack()
+        self.free_space_button.pack(fill=BOTH, expand=YES)
 
         self.category_container = Frame(self.right_container, borderwidth=5, relief=RIDGE)
         self.extras_container = Frame(self.right_container, borderwidth=5, relief=RIDGE)
@@ -505,7 +505,7 @@ class MainWindow:
         self.category_container.name = "tag_group_1"
         self.extras_container.name = "tag_group_2"
 
-        self.left_container.pack(side=LEFT)
+        self.left_container.pack(side=LEFT, padx=40)
         self.right_container.pack(side=LEFT)
 
         self.arrows_container.pack(pady=20, fill=BOTH, expand=YES)
@@ -522,23 +522,19 @@ class MainWindow:
         self.controls_container.pack(fill=BOTH, expand=YES)
 
         self.clear_tags_button = Button(self.controls_container)
-        self.clear_tags_button.configure(font=self.button_font, text="Clear",
-                                         command=lambda: self.reset_buttons())
+        self.clear_tags_button.configure(font=self.button_font, text="Clear", command=self.reset_buttons)
         self.clear_tags_button.pack(side=LEFT)
 
         self.commit_changes_button = Button(self.controls_container)
-        self.commit_changes_button.configure(font=self.button_font, text="Commit",
-                                             command=lambda: self.commit_change())
+        self.commit_changes_button.configure(font=self.button_font, text="Commit", command=self.commit_change)
         self.commit_changes_button.pack(side=LEFT)
 
         self.repeat_tags_button = Button(self.controls_container)
-        self.repeat_tags_button.configure(font=self.button_font, text="Clone prev.",
-                                          command=lambda: self.repeat_tags())
+        self.repeat_tags_button.configure(font=self.button_font, text="Clone prev.", command=self.repeat_tags)
         self.repeat_tags_button.pack(side=LEFT)
 
         self.rquery_button = Button(self.controls_container)
-        self.rquery_button.configure(font=self.button_font, text="Results",
-                                     command=lambda: self.get_query_results())
+        self.rquery_button.configure(font=self.button_font, text="Results", command=self.get_query_results)
         self.rquery_button.pack(side=LEFT)
 
         for k in (self.category_container, self.extras_container):
