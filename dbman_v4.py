@@ -2,7 +2,7 @@ import sqlite3
 from collections import namedtuple
 import os
 from hashlib import md5
-from videoobject import VideoObject
+from videoobject import VideoObject, BadVideoException
 import time  # need for time of deletion in removed db
 import json
 from shutil import move, Error
@@ -185,7 +185,7 @@ class DBManager:
 
     def increment_play_count(self, fullpath):
 
-        print(fullpath)
+        # print(fullpath)
         self.db_cursor.execute('''update videos set times_viewed = times_viewed + 1
                                 where fullpath = ?''', (fullpath,))
         self.db.commit()
@@ -297,8 +297,8 @@ class DBManager:
 
         out = outb + outa  # mostly any videos, but with guaranteed some recent ones
         while not out == []:
-            print(f"{len(outb)}, {len(outa)}")
-            print(new_qty)
+            # print(f"{len(outb)}, {len(outa)}")
+            # print(new_qty)
             yield out
             offset += batch_size
 
@@ -496,7 +496,11 @@ class DBManager:
                     fhash = self.get_file_hash(fullpath)
                     fsize = os.stat(fullpath).st_size
                     bits = fullpath.split("\\")
-                    dur, unused = VideoObject.get_initial_info(fullpath)
+                    try:
+                        dur, unused = VideoObject.get_initial_info(fullpath)
+                    except BadVideoException:
+                        print(f"Video at {fullpath} appears to be broken, skipping.")
+                        continue
                     directory = bits[1]
                     resx, resy = self.get_video_res(fullpath)
                     self.db_cursor.execute('''insert into videos (

@@ -195,16 +195,15 @@ class PicsWindow(Toplevel):
 
         if type(obj) == VideoObject:  # resultsobjects don't have filenames
             filename = obj.filename
-            # self.file_name_display.configure(text=filename)
             self.title(filename)
         else:
-            #self.file_name_display.configure(text="Results")  # default
             self.title("Results")
 
     def update_images(self):
 
         """Gets images from self.videoobject, to be called after the video object updates itself"""
 
+        index = self.index_from
         self.piclist = []  # clear to prevent storing old images forever
 
         for i in self.video_object.images:
@@ -214,11 +213,12 @@ class PicsWindow(Toplevel):
                 logo = ImageTk.PhotoImage(i)
             self.piclist.append(logo)
 
-        index = self.index_from
         for i in self.picture_panels:
             if index < len(self.piclist):  # to cope with being passed a small query
                 i.configure(image=self.piclist[index], bg="light grey")
-                index += 1
+            else:
+                i.configure(image=self.placeholder_image, bg="light grey")
+            index += 1
 
 
 class ImageWindow(PicsWindow):
@@ -312,7 +312,7 @@ class QueryWindow(PicsWindow):
     def on_right_click(self, event):
 
         """overloaded to query tags from the parent's database object"""
-        print(len(self.picture_panels))
+        # print(len(self.picture_panels))
 
         cnt = 0
         for i in self.picture_panels:
@@ -339,8 +339,7 @@ class QueryWindow(PicsWindow):
 
         # re-bind commands for first and last picture panels for use as forward/back button
 
-        def null_method():
-            pass  # for overriding functions of fd/back panels
+        null_method = lambda: None
 
         self.picture_panels[0].bind("<Button-1>", self.prev_image_set)
         self.picture_panels[0].bind("<Double-Button-1>", self.prev_image_set)
@@ -682,8 +681,7 @@ class MainWindow:
             return
 
         self.picpanel.set_videoobject(obj)
-        print(obj.path)
-        print("aaaaa")
+
         try:
             self.update_tags(obj.path)
         except KeyError:  # file was skipped and not tagged at all
@@ -698,7 +696,7 @@ class MainWindow:
             children = i.winfo_children()
             for j in children:
                 if type(j) == Button:
-                    if j.value == 1 or j.value == 2:
+                    if not j.value == 0:  # can be 1 (tag once) or 2 (tag and conserve tag for next entry)
                         taglist.append(j["text"])
 
             ls.append(taglist)
@@ -710,8 +708,8 @@ class MainWindow:
             children = i.winfo_children()
             for j in children:
                 if type(j) == Button:
-                    if j.value > 0:
-                        j.value = 0  # reset values stored in button if it has been clicked
+                    if j.value == 1:  # reset values stored in button if it has been clicked but not if clicked twice
+                        j.value = 0
                         j.configure(background="gray92")
 
     def start_query_mode(self):
@@ -735,9 +733,8 @@ class MainWindow:
 
         if not randomly:
             apath = filedialog.askdirectory()
-            print(apath)
-            apath = apath.split("/")[1]
-            print(apath)
+            # apath = apath.split("/")[1]
+            apath = os.path.split(apath)[1]
             # db manager's path generator expects just the name of the directory for an SQL query
             list_of_paths = self.db_manager.path_generator(apath, random=False)
         else:
@@ -779,6 +776,8 @@ class MainWindow:
             return
         tag_group_1, tag_group_2 = self.get_button_values()
 
+        if not self.key_to_update:  # clicked "commit" without having a video selected
+            return
         if not self.db_manager.check_has_thumbnail(self.key_to_update):
             self.save_entry()  # if no thumbnail, it hasn't been tagged before and needs new entry
         else:
@@ -798,7 +797,6 @@ class MainWindow:
             return
 
         queryls = self.get_button_values()
-
         results = self.db_manager.get_matches(*queryls, batch_size=self.tile_count)
 
         obj = ResultsObject(results, placeholder=self.placeholder_image)
