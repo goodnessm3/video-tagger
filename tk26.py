@@ -43,10 +43,12 @@ class ThumbGenerator:
         if len(self.deque) > 0:
             obj = self.deque.pop()
         elif self.updater_running:
+            print("Waiting for something to pop from the deque", end="")
             while len(self.deque) < 1:
                 time.sleep(1)
-                print("Waiting for something to pop from the deque")
+                print(".", end="")
             obj = self.deque.pop()
+            print()
         else:
             print("all files visited")
             return -1
@@ -86,11 +88,8 @@ class ThumbGenerator:
             try:
                 obj = VideoObject(path)
             except BadVideoException:
-                print("failed for {}".format(path))
-                with open("broken_videos.txt", "a") as f:
-                    f.write(path)  # keep a record of broken files
-                    f.write("\n")
-                continue
+                obj = path  # the video is broken, just put the path on the deque so that when the
+                # main window pops it it knows it's broken and can remove the video from the db
 
             self.deque.appendleft(obj)
         self.updater_running = False
@@ -656,6 +655,9 @@ class MainWindow:
                 obj = override
             else:
                 obj = self.thumbgenerator.get_next()
+                while type(obj) is str:  # take care of as many broken videos as necessary
+                    self.db_manager.broken_file(obj)
+                    obj = self.thumbgenerator.get_next()
 
         else:
             obj = self.saved_objects.pop()
@@ -746,6 +748,11 @@ class MainWindow:
         video_object = None
         while video_object is None:
             video_object = self.thumbgenerator.get_next()
+            # todo: this code is duplicated in the next_entry function
+            while type(video_object) is str:  # take care of as many broken videos as necessary
+                self.db_manager.broken_file(video_object)
+                video_object = self.thumbgenerator.get_next()
+
             if video_object == -1:
                 no_dir = True
                 break

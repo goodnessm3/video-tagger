@@ -26,7 +26,10 @@ class VideoObject:
         self.path = full_path
         filename = os.path.split(self.path)[1]
         self.filename = filename.rstrip("\"")  # filename final quote mark stripped off
-        self.duration, self.increment = self.get_initial_info(self.path, thumbnails)
+        try:
+            self.duration, self.increment = self.get_initial_info(self.path, thumbnails)
+        except BadVideoException:
+            raise BadVideoException
         if self.duration is not None:
             # if it's none then this video has broken ffmpeg
             self.time_points = self.get_time_points(thumbnails)

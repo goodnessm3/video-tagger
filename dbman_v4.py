@@ -9,6 +9,7 @@ from shutil import move, Error
 from settings import SETTINGS, DELETION_WHITELIST
 DUPES_FOLDER = SETTINGS["DUPES_FOLDER"]
 TRASH_FOLDER = SETTINGS["TRASH_FOLDER"]
+BROKEN_FOLDER = SETTINGS["BROKEN_FOLDER"]
 
 """Module for interfacing with the sqlite database. This internally takes care of the conversion of tags to
 bitmaps and back again, so the calling interface only sees lists of tags. Handles scanning for new files and
@@ -613,3 +614,14 @@ class DBManager:
         print(f"Done, moved {round(total/(1024**3), 2)} GB of data to the trash folder.")
         self.db.commit()
 
+    def broken_file(self, fullpath):
+
+        """Move broken file at fullpath to the broken folder"""
+
+        try:
+            move(fullpath, BROKEN_FOLDER)
+            self.remove_video(fullpath)
+            print(f"{fullpath} was moved to the broken videos folder.")
+            self.db.commit()
+        except Error as e:
+            print(e)
