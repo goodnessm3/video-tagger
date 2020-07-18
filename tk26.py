@@ -305,6 +305,7 @@ class QueryWindow(PicsWindow):
             path = self.video_object.paths[index]
             os.startfile(path)
             self.mainwindow_ref.db_manager.increment_play_count(path)
+            self.mainwindow_ref.history_window.add(self.piclist[index], path)
         else:
             print("index beyond video list")
 
@@ -387,6 +388,36 @@ class QueryWindow(PicsWindow):
         self.mainwindow_ref.deselect_update()
         # self.file_name_display.configure(text="Results")  # clear selection
         self.title("Results")
+
+
+class HistoryWindow(PicsWindow):
+
+    def __init__(self, parent, ph):
+
+        super().__init__(parent, x=6, y=9, ph=ph)
+        self.current = 0  # the index of where to put the next thumbnail
+        self.paths = [None] * len(self.picture_panels)
+        self.geometry(SETTINGS["GEOMETRY_HISTORY_WINDOW"])
+        self.images = [None] * len(self.picture_panels)
+        # need to hold our own reference to images or they'll be garbage collected
+        self.title("History")
+
+    def add(self, thumbnail, fullpath):
+
+        """Add a video to the history and display it"""
+
+        pan = self.picture_panels[self.current]
+        self.images[self.current] = thumbnail
+        pan.configure(image=self.images[self.current])
+        self.paths[self.current] = fullpath
+        self.current += 1
+        if self.current >= len(self.picture_panels):
+            self.current = 0
+
+    def on_left_click(self, e):
+
+        os.startfile(self.paths[e.widget.number])
+        # this doesn't update the "times played" count but that's not really that useful anyway
 
 
 class ResultsObject:
@@ -723,6 +754,7 @@ class MainWindow:
         self.picpanel.destroy()
         self.picpanel = QueryWindow(parent=self.parent, x=self.xtiles, y=self.ytiles,
                                     mainwindow_ref=self, ph=self.placeholder_image)
+        self.history_window = HistoryWindow(parent=self.parent, ph=self.placeholder_image)
 
     def start_tag_mode(self, randomly=False):
 
@@ -813,6 +845,7 @@ class MainWindow:
 
         SETTINGS["GEOMETRY_MAIN"] = self.parent.geometry()
         SETTINGS["GEOMETRY_IMAGEWINDOW"] = self.picpanel.geometry()
+        SETTINGS["GEOMETRY_HISTORY_WINDOW"] = self.history_window.geometry()
         save_settings()  # remember window geometries
 
         self.db_manager.commit_changes()
