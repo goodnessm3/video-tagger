@@ -500,7 +500,7 @@ class DBManager:
                     try:
                         dur, unused = VideoObject.get_initial_info(fullpath)
                     except BadVideoException:
-                        print(f"Video at {fullpath} appears to be broken, skipping.")
+                        print(f"Video at {fullpath} appears to be broken, skipping.")  # TODO: actually move
                         continue
                     directory = bits[1]
                     resx, resy = self.get_video_res(fullpath)
@@ -517,7 +517,13 @@ class DBManager:
                                             times_viewed) values
                                             (?,?,?,?,?,?,?,?,?,?)''', (fullpath, filename, fsize,
                                                                        directory, created, fhash, dur, resx, resy, 0))
-                    self.db_cursor.execute('''insert into thumbnails (fullpath) values (?)''', (fullpath,))
+                    try:
+                        self.db_cursor.execute('''insert into thumbnails (fullpath) values (?)''', (fullpath,))
+                    except sqlite3.IntegrityError:
+                        print(f"Thumbnail already existed for {fullpath}")  # TODO: probably best handled inside SQL
+                        # the only time this should happen is if a video is removed (added to the deletions table)
+                        # and then re-added later
+                        # TODO: have thumbnail deleted when video is deleted
                     # need to insert it into info table AND thumbnail table
                     # print("Made new db entry for {}".format(filename))
                     added += 1
@@ -604,8 +610,11 @@ class DBManager:
             # making it into a namedtuple/dbrow means we can now access attributes by column name
             fsize = q.filesize
             fullpath = q.fullpath
+            trash_dest = os.path.join(TRASH_FOLDER, q.directory)
+            if not os.path.exists(trash_dest):
+                os.makedirs(trash_dest)
             try:
-                move(fullpath, TRASH_FOLDER)
+                move(fullpath, trash_dest)
                 self.remove_video(fullpath)  # may as well do this now as we know it's being "deleted"
                 total += fsize
                 print(f"Moving files... ({total} / {amount})", end="\r")  # end = carriage return overwrites the line
