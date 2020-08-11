@@ -238,6 +238,18 @@ class DBManager:
             print("NAME COLLISION for {}".format(filename))
         return results[0][0]  # a list of tuples containing one value
 
+    def text_search(self, text, batch_size=34):
+
+        self.db_cursor.execute(f'''SELECT thumbnails.thumbnail, videos.fullpath from videos
+                                INNER JOIN
+                                thumbnails ON thumbnails.fullpath = videos.fullpath
+                                where videos.fullpath LIKE ?
+                                and skipped != 1''', (f'''%{text}%''',))
+
+        # it has to be an iterator to behave like the get_matches function
+        yield self.db_cursor.fetchall()  # only return one screen of results
+        return
+
     def get_matches(self, tag_group_1, tag_group_2, batch_size=34):
 
         offset = 0

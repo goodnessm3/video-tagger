@@ -529,6 +529,7 @@ class MainWindow:
 
         self.category_container = Frame(self.right_container, borderwidth=5, relief=RIDGE)
         self.extras_container = Frame(self.right_container, borderwidth=5, relief=RIDGE)
+        self.text_container = Frame(self.right_container, borderwidth=5, relief=RIDGE)
         self.arrows_container = Frame(self.left_container, borderwidth=5, relief=RIDGE)
 
         self.category_container.name = "tag_group_1"
@@ -574,8 +575,15 @@ class MainWindow:
             k.current_row = 0
             k.current_column = 0
 
+        self.text_search_button = Button(self.text_container)
+        self.text_search_button.configure(text="Search by title", font=self.button_font, command=self.search_by_title)
+        self.text_search = Entry(self.text_container, width=20)
+        self.text_search.pack(side=LEFT, padx=20)
+        self.text_search_button.pack(side=LEFT, padx=20)
+
         self.extras_container.pack(fill=BOTH, expand=YES)
         self.category_container.pack(fill=BOTH, expand=YES)
+        self.text_container.pack()
 
         for entry in sorted(self.tag_group_1):
             self.add_button(container=self.category_container, name=entry)
@@ -840,6 +848,17 @@ class MainWindow:
 
         obj = ResultsObject(results, placeholder=self.placeholder_image)
         self.picpanel.set_videoobject(obj)
+
+    def search_by_title(self):
+
+        if not self.query_mode:
+            return
+
+        qry = self.text_search.get()
+        results = self.db_manager.text_search(qry, batch_size=self.tile_count)
+
+        obj = ResultsObject(results, placeholder=self.placeholder_image)
+        self.picpanel.set_videoobject(obj)  # TODO: bit of code duplication with above
 
     def on_quit(self):
 
