@@ -471,7 +471,7 @@ class ResultsObject:
 class MainWindow:
     def __init__(self, parent):
 
-        self.button_font = font.Font(family="Helvetica", size="14")
+        self.button_font = font.Font(family="Helvetica", size="12")
         self.parent = parent  # ref held for starting query mode or making new windows outside of init
 
         self.parent.geometry(SETTINGS["GEOMETRY_MAIN"])
@@ -566,6 +566,10 @@ class MainWindow:
         self.rquery_button = Button(self.controls_container)
         self.rquery_button.configure(font=self.button_font, text="Results", command=self.get_query_results)
         self.rquery_button.pack(side=LEFT)
+
+        self.newquery_button = Button(self.controls_container)
+        self.newquery_button.configure(font=self.button_font, text="New results", command=self.new_query_results)
+        self.newquery_button.pack(side=LEFT)
 
         for k in (self.category_container, self.extras_container):
             button = Button(k)
@@ -837,6 +841,19 @@ class MainWindow:
 
         self.reset_buttons()
         self.key_to_update = None
+
+    def new_query_results(self):
+
+        # TODO: refactor, copy-pasted from below
+        if not self.query_mode:
+            return
+
+        queryls = self.get_button_values()
+        results = self.db_manager.newest_matches(*queryls, batch_size=self.tile_count)
+
+        obj = ResultsObject(results, placeholder=self.placeholder_image)
+        self.picpanel.set_videoobject(obj)
+
 
     def get_query_results(self):
 

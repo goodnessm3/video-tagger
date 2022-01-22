@@ -250,6 +250,53 @@ class DBManager:
         yield self.db_cursor.fetchall()  # only return one screen of results
         return
 
+    def newest_matches(self, tag_group_1, tag_group_2, batch_size=34):
+
+        #TODO: refactor and avoid this copy-pasted code
+        offset = 0
+        gqscore, eqscore = self.tags_to_ints(tag_group_1, tag_group_2)
+
+        self.db_cursor.executescript('''drop table if exists abcd;
+                                                create table abcd (fp TEXT, tagged_when INTEGER)''')
+        if self.filter_directory:
+            self.db_cursor.execute('''insert into abcd (fp, tagged_when) 
+                                                    select fullpath, tagged_when from videos 
+                                                    where score_1 & ? = ? and
+                                                    score_2 & ? = ? and
+                                                    tagged_when is not NULL
+                                                    directory = ? order by tagged_when desc''',
+                                   (gqscore, gqscore, eqscore, eqscore, self.filter_directory))
+        else:
+            self.db_cursor.execute('''insert into abcd (fp, tagged_when)
+                                        select fullpath, tagged_when from videos 
+                                        where score_1 & ? = ? and
+                                        score_2 & ? = ? 
+                                        and tagged_when is not NULL
+                                        order by tagged_when desc''',
+                                   (gqscore, gqscore, eqscore, eqscore))
+
+        # this sets up a temporary table from which we select chunks which are joined on
+        # the thumbnails table, joining all results at once is too slow
+
+        selector = '''select thumbnail, fullpath from abcd
+                                inner join 
+                                thumbnails on thumbnails.fullpath = abcd.fp
+                                limit {} offset {} 
+                                '''
+        lim = 52
+        offset = 0
+        self.db_cursor.execute(selector.format(lim, offset))
+        outa = self.db_cursor.fetchall()
+
+        while not outa == []:
+
+            yield outa
+            offset += lim
+            self.db_cursor.execute(selector.format(lim, offset))
+            outa = self.db_cursor.fetchall()
+
+
+
     def get_matches(self, tag_group_1, tag_group_2, batch_size=34):
 
         offset = 0
