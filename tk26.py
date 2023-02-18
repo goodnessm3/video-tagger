@@ -585,6 +585,10 @@ class MainWindow:
         self.text_search.pack(side=LEFT, padx=20)
         self.text_search_button.pack(side=LEFT, padx=20)
 
+        self.pop_search_button = Button(self.text_container)
+        self.pop_search_button.configure(text="Most viewed", font=self.button_font, command=self.search_popular)
+        self.pop_search_button.pack(side=LEFT, padx=20)
+
         self.extras_container.pack(fill=BOTH, expand=YES)
         self.category_container.pack(fill=BOTH, expand=YES)
         self.text_container.pack()
@@ -873,6 +877,16 @@ class MainWindow:
 
         qry = self.text_search.get()
         results = self.db_manager.text_search(qry, batch_size=self.tile_count)
+
+        obj = ResultsObject(results, placeholder=self.placeholder_image)
+        self.picpanel.set_videoobject(obj)  # TODO: bit of code duplication with above
+
+    def search_popular(self):
+
+        if not self.query_mode:
+            return
+
+        results = self.db_manager.popular_search(batch_size=self.tile_count)
 
         obj = ResultsObject(results, placeholder=self.placeholder_image)
         self.picpanel.set_videoobject(obj)  # TODO: bit of code duplication with above

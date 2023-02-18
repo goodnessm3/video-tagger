@@ -248,7 +248,31 @@ class DBManager:
 
         # it has to be an iterator to behave like the get_matches function
         yield self.db_cursor.fetchall()  # only return one screen of results
-        return
+
+        # even though we're not really generating results, this still needs to look like a generator with a next func
+
+
+    def popular_search(self, batch_size=34):
+
+        offset = 0
+        limit = batch_size
+        out = []
+        qry = '''SELECT thumbnails.thumbnail, videos.fullpath from videos
+                INNER JOIN
+                thumbnails ON thumbnails.fullpath = videos.fullpath
+                where skipped != 1
+                ORDER BY times_viewed DESC
+                LIMIT {} OFFSET {}'''
+
+        self.db_cursor.execute(qry.format(limit, offset))
+        out = self.db_cursor.fetchall()
+
+        while not out == []:
+            yield out  # only return one screen of results
+            offset += batch_size
+            self.db_cursor.execute(qry.format(limit, offset))
+            out = self.db_cursor.fetchall()
+
 
     def newest_matches(self, tag_group_1, tag_group_2, batch_size=34):
 
