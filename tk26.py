@@ -941,9 +941,8 @@ class MainWindow:
             if not path:
                 self.db_manager.remove_directory_filter()
             else:
-                # print("Filtering results to {}".format(path))
                 bits = path.split("/")
-                folder = bits[1]
+                folder = bits[-1]
                 self.db_manager.set_directory_filter(folder)
 
 

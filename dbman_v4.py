@@ -283,11 +283,12 @@ class DBManager:
         self.db_cursor.executescript('''drop table if exists abcd;
                                                 create table abcd (fp TEXT, tagged_when INTEGER)''')
         if self.filter_directory:
+            print(f"Query with filter directory {self.filter_directory}")
             self.db_cursor.execute('''insert into abcd (fp, tagged_when) 
                                                     select fullpath, tagged_when from videos 
                                                     where score_1 & ? = ? and
                                                     score_2 & ? = ? and
-                                                    tagged_when is not NULL
+                                                    tagged_when is not NULL and
                                                     directory = ? order by tagged_when desc''',
                                    (gqscore, gqscore, eqscore, eqscore, self.filter_directory))
         else:
@@ -496,6 +497,7 @@ class DBManager:
         """only returns results from within this top level dir
         these dirs correspond to values in the DB"""
 
+        print("set filter directory", path)
         self.filter_directory = path
 
     def check_if_new_file(self, fullpath):
