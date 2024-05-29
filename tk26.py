@@ -303,6 +303,7 @@ class QueryWindow(PicsWindow):
         index += self.index_from  # offset used if we are on screen 2,3... of results
         if not index > len(self.video_object.paths) - 1:
             path = self.video_object.paths[index]
+            path = os.path.join(TOP_LEVEL, path)  # get the absolute path from the root in settings
             os.startfile(path)
             self.mainwindow_ref.db_manager.increment_play_count(path)
             self.mainwindow_ref.history_window.add(self.piclist[index], path)

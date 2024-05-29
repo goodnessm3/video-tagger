@@ -10,6 +10,7 @@ from settings import SETTINGS, DELETION_WHITELIST
 DUPES_FOLDER = SETTINGS["DUPES_FOLDER"]
 TRASH_FOLDER = SETTINGS["TRASH_FOLDER"]
 BROKEN_FOLDER = SETTINGS["BROKEN_FOLDER"]
+TOP_LEVEL = SETTINGS["TOP_LEVEL"]
 
 """Module for interfacing with the sqlite database. This internally takes care of the conversion of tags to
 bitmaps and back again, so the calling interface only sees lists of tags. Handles scanning for new files and
@@ -250,7 +251,6 @@ class DBManager:
         yield self.db_cursor.fetchall()  # only return one screen of results
 
         # even though we're not really generating results, this still needs to look like a generator with a next func
-
 
     def popular_search(self, batch_size=34):
 
