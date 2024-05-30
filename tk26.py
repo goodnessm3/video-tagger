@@ -1,4 +1,5 @@
 from tkinter import *
+from tkinter import ttk  # for combobox??
 from PIL import Image, ImageTk, UnidentifiedImageError
 from io import BytesIO
 import threading
@@ -516,9 +517,9 @@ class MainWindow:
         self.r_tagging_button.configure(text="Tag randomly", command=lambda: self.start_tag_mode(True))
         self.r_tagging_button.pack(fill=BOTH, expand=YES)
 
-        self.select_dir_button = Button(self.left_container)
-        self.select_dir_button.configure(text="Directory...", command=self.select_directory)
-        self.select_dir_button.pack(fill=BOTH, expand=YES)
+        #self.select_dir_button = Button(self.left_container)
+        #self.select_dir_button.configure(text="Directory...", command=self.select_directory)
+        #self.select_dir_button.pack(fill=BOTH, expand=YES)
 
         self.scan_changes_button = Button(self.left_container)
         self.scan_changes_button.configure(text="Scan for new files", command=self.scan_for_new_files)
@@ -527,6 +528,15 @@ class MainWindow:
         self.free_space_button = Button(self.left_container)
         self.free_space_button.configure(text="Free up library space", command=self.free_space)
         self.free_space_button.pack(fill=BOTH, expand=YES)
+
+        self.dropdown_label = Label(self.left_container, text="Search within directory:")
+        self.dropdown_label.pack(fill=BOTH, expand=YES)
+
+        self.dropdown_var = StringVar()
+        ddvals = ["Any"] + self.db_manager.get_directories()
+        self.directory_dropdown = ttk.Combobox(self.left_container, textvariable = self.dropdown_var, values=ddvals)
+        self.directory_dropdown.bind("<<ComboboxSelected>>", self.on_dropdown_select)
+        self.directory_dropdown.pack(fill=BOTH, expand=YES)
 
         self.category_container = Frame(self.right_container, borderwidth=5, relief=RIDGE)
         self.extras_container = Frame(self.right_container, borderwidth=5, relief=RIDGE)
@@ -604,6 +614,14 @@ class MainWindow:
         self.setup_num_bindings()  # bind numeric keypad to thumbnail 1-9 for selection while tagging
 
         self.start_query_mode()
+
+    def on_dropdown_select(self, e):
+
+        dd = self.dropdown_var.get()
+        if dd == "Any":
+            self.db_manager.remove_directory_filter()
+        else:
+            self.db_manager.set_directory_filter(dd)
 
     def setup_num_bindings(self):
 

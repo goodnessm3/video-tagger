@@ -421,7 +421,7 @@ class DBManager:
         """Returns the list of all possible top-level directories for filtering purposes"""
 
         print("Getting distinct directories...")
-        self.db_cursor.execute('''select distinct directory from videos''')
+        self.db_cursor.execute('''select distinct directory from videos order by directory collate nocase asc''')
         # this query returns every distinct possible value in the column
         return [x[0] for x in self.db_cursor.fetchall()]  # unpack the tuples
 
@@ -581,7 +581,7 @@ class DBManager:
                     created = os.path.getctime(fullpath)
                     fhash = self.get_file_hash(fullpath)
                     fsize = os.stat(fullpath).st_size
-                    bits = fullpath.split("\\")
+                    bits = fullpath.split(os.path.sep)  # better than explicit slashes
                     try:
                         dur, unused = VideoObject.get_initial_info(fullpath)
                     except BadVideoException:
