@@ -559,9 +559,15 @@ class DBManager:
         """walks the entirety of toplevel. If files are found with allowed extensions,
         new entries are created for them in the db."""
 
+        # note: here is the command that was used to strip the root drive from the fullpaths, to just get relative paths
+        # UPDATE videos SET directory = substr(fullpath, 0, INSTR(fullpath, '\'));
+
         added = 0
         self.db_cursor.execute('''select fullpath from videos''')
-        known = set([x[0] for x in self.db_cursor.fetchall()])  # better than looking up each indivudal name in SQL
+        known = set([os.path.join(TOP_LEVEL, x[0]) for x in self.db_cursor.fetchall()])
+        # better than looking up each indivudal name in SQL
+        # the os.path.join part is needed to "regenerate" the fullpath for comparison with os.walk
+        # os.walk gives us the full paths, but the database doesn't store the root directory, so we add it back on.
         verified = set()  # used at end to check if any files are missing
         for head, folders, files in os.walk(toplevel):
             # print(f"{head}, {folders}, {files}")
