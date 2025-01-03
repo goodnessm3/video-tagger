@@ -8,5 +8,8 @@ directory = argv[1]
 targets = os.listdir(directory)
 thumbs = int(argv[2])
 for x in targets:
-    vo = VideoObject(os.path.join(directory, x), thumbs)
-    vo.write_contact_sheet(argv[1])
+    try:
+        vo = VideoObject(os.path.join(directory, x), thumbs)
+        vo.write_contact_sheet(argv[1])
+    except:
+        print(f"error for {x}")

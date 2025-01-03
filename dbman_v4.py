@@ -25,6 +25,7 @@ def get_today_date():
 
     return datetime.date.today().isoformat()
 
+
 def forty_days_ago():
 
     return int(time.time() - 3456000)
@@ -170,10 +171,11 @@ class DBManager:
         self.db.commit()
         self.values_setup()  # re-read the tag values to include the new one
 
-    def write_entry(self, fullpath, tag_group_1, tag_group_2):
+    def write_entry(self, fp, tag_group_1, tag_group_2):
 
         """Write tags for entry identified by fullpath"""
 
+        fullpath = fp.removeprefix(TOP_LEVEL + os.sep)
         score_1, score_2 = self.tags_to_ints(tag_group_1, tag_group_2)
         timenow = int(time.time())
         self.db_cursor.execute('''update videos set score_1 = ?, 
@@ -200,9 +202,11 @@ class DBManager:
         self.db_cursor.execute('''update videos set skipped = 1 where fullpath = ?''', (fullpath,))
         self.db.commit()
 
-    def assign_thumbnail(self, fullpath, gif):
+    def assign_thumbnail(self, fp, gif):
 
         """Identifying an entry by fullpath, write a gif blob to the database"""
+
+        fullpath = fp.removeprefix(TOP_LEVEL + os.sep)
 
         self.db_cursor.execute('''update thumbnails set thumbnail = ? where fullpath = ?''',
                                (gif, fullpath))
@@ -320,8 +324,6 @@ class DBManager:
             self.db_cursor.execute(selector.format(lim, offset))
             outa = self.db_cursor.fetchall()
 
-
-
     def get_matches(self, tag_group_1, tag_group_2, batch_size=34):
 
         offset = 0
@@ -438,9 +440,11 @@ class DBManager:
 
         return out
 
-    def check_has_thumbnail(self, fullpath):
+    def check_has_thumbnail(self, fp):
 
         """Return true if a thumbnail blob exists"""
+
+        fullpath = fp.removeprefix(TOP_LEVEL + os.sep)
 
         # self.db_cursor.execute('''select thumbnail from videos where fullpath = ? and thumbnail not null''',
         #                       (fullpath,))   # old database structure
@@ -481,7 +485,7 @@ class DBManager:
             # and duration not null
             # and duration > 420  additional contstraints cut out
 
-        return [x[0] for x in self.db_cursor.fetchall()]
+        return [os.path.join(TOP_LEVEL, x[0]) for x in self.db_cursor.fetchall()]
 
         # have to unpack the whole thing otherwise SQL will complain about being
         # called from another thread
@@ -588,6 +592,9 @@ class DBManager:
                     fhash = self.get_file_hash(fullpath)
                     fsize = os.stat(fullpath).st_size
                     bits = fullpath.split(os.path.sep)  # better than explicit slashes
+
+                    noroot = fullpath.removeprefix(toplevel + os.sep)  # file loc independent of toplevel location
+
                     try:
                         dur, unused = VideoObject.get_initial_info(fullpath)
                     except BadVideoException:
@@ -606,10 +613,10 @@ class DBManager:
                                             width,
                                             height,
                                             times_viewed) values
-                                            (?,?,?,?,?,?,?,?,?,?)''', (fullpath, filename, fsize,
+                                            (?,?,?,?,?,?,?,?,?,?)''', (noroot, filename, fsize,
                                                                        directory, created, fhash, dur, resx, resy, 0))
                     try:
-                        self.db_cursor.execute('''insert into thumbnails (fullpath) values (?)''', (fullpath,))
+                        self.db_cursor.execute('''insert into thumbnails (fullpath) values (?)''', (noroot,))
                     except sqlite3.IntegrityError:
                         print(f"Thumbnail already existed for {fullpath}")  # TODO: probably best handled inside SQL
                         # the only time this should happen is if a video is removed (added to the deletions table)
