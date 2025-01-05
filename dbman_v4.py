@@ -591,16 +591,19 @@ class DBManager:
                     created = os.path.getctime(fullpath)
                     fhash = self.get_file_hash(fullpath)
                     fsize = os.stat(fullpath).st_size
-                    bits = fullpath.split(os.path.sep)  # better than explicit slashes
+
+                    # UPDATE videos SET directory = SUBSTR(fullpath, 0, INSTR(fullpath, '\'))
+                    # WHERE directory is NULL;  <-- query to manually add directory from fullpath
 
                     noroot = fullpath.removeprefix(toplevel + os.sep)  # file loc independent of toplevel location
+                    directory = noroot.split(os.path.sep)[0]  # the highest level directory within the root
 
                     try:
                         dur, unused = VideoObject.get_initial_info(fullpath)
                     except BadVideoException:
                         print(f"Video at {fullpath} appears to be broken, skipping.")  # TODO: actually move
                         continue
-                    directory = bits[1]
+
                     resx, resy = self.get_video_res(fullpath)
                     self.db_cursor.execute('''insert into videos (
                                             fullpath,
