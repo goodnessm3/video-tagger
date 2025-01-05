@@ -881,7 +881,6 @@ class MainWindow:
         obj = ResultsObject(results, placeholder=self.placeholder_image)
         self.picpanel.set_videoobject(obj)
 
-
     def get_query_results(self):
 
         if not self.query_mode:
@@ -909,7 +908,8 @@ class MainWindow:
         if not self.query_mode:
             return
 
-        results = self.db_manager.popular_search(batch_size=self.tile_count, most_popular=True)
+        queryls = self.get_button_values()
+        results = self.db_manager.popular_search(*queryls, batch_size=self.tile_count, most_popular=True)
 
         obj = ResultsObject(results, placeholder=self.placeholder_image)
         self.picpanel.set_videoobject(obj)  # TODO: bit of code duplication with above
@@ -919,7 +919,8 @@ class MainWindow:
         if not self.query_mode:
             return
 
-        results = self.db_manager.popular_search(batch_size=self.tile_count, most_popular=False)
+        queryls = self.get_button_values()
+        results = self.db_manager.popular_search(*queryls, batch_size=self.tile_count, most_popular=False)
 
         obj = ResultsObject(results, placeholder=self.placeholder_image)
         self.picpanel.set_videoobject(obj)  # TODO: bit of code duplication with above

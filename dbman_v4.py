@@ -256,13 +256,14 @@ class DBManager:
 
         # even though we're not really generating results, this still needs to look like a generator with a next func
 
-    def popular_search(self, batch_size=34, most_popular=True):
+    def popular_search(self, tags1, tags2, batch_size=34, most_popular=True):
 
         if most_popular:
             popu = "DESC"
         else:
             popu = "ASC"
 
+        gqscore, eqscore = self.tags_to_ints(tags1, tags2)
         offset = 0
         limit = batch_size
         out = []
@@ -270,10 +271,12 @@ class DBManager:
                 INNER JOIN
                 thumbnails ON thumbnails.fullpath = videos.fullpath
                 where skipped != 1
+                and score_1 & ? = ? and
+                score_2 & ? = ? 
                 ORDER BY times_viewed {}
                 LIMIT {} OFFSET {}'''
 
-        self.db_cursor.execute(qry.format(popu, limit, offset))
+        self.db_cursor.execute(qry.format(popu, limit, offset), (gqscore, gqscore, eqscore, eqscore))
         out = self.db_cursor.fetchall()
 
         while not out == []:
