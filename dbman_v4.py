@@ -273,7 +273,7 @@ class DBManager:
                 where skipped != 1
                 and score_1 & ? = ? and
                 score_2 & ? = ? 
-                ORDER BY times_viewed {}
+                ORDER BY times_viewed {}, RANDOM()  
                 LIMIT {} OFFSET {}'''
 
         self.db_cursor.execute(qry.format(popu, limit, offset), (gqscore, gqscore, eqscore, eqscore))
@@ -282,7 +282,7 @@ class DBManager:
         while not out == []:
             yield out  # only return one screen of results
             offset += batch_size
-            self.db_cursor.execute(qry.format(popu, limit, offset))
+            self.db_cursor.execute(qry.format(popu, limit, offset), (gqscore, gqscore, eqscore, eqscore))
             out = self.db_cursor.fetchall()
 
 

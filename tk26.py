@@ -305,7 +305,10 @@ class QueryWindow(PicsWindow):
         if not index > len(self.video_object.paths) - 1:
             path = self.video_object.paths[index]
             path = os.path.join(TOP_LEVEL, path)  # get the absolute path from the root in settings
-            os.startfile(path)
+            if os.path.exists(path):
+                os.startfile(path)
+            else:
+                print(f"File was not found at {path}")
             self.mainwindow_ref.db_manager.increment_play_count(path)
             self.mainwindow_ref.history_window.add(self.piclist[index], path)
         else:
