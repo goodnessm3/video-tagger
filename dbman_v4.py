@@ -187,9 +187,10 @@ class DBManager:
 
         self.db.commit()
 
-    def increment_play_count(self, fullpath):
+    def increment_play_count(self, fp):
 
         # print(fullpath)
+        fullpath = fp.removeprefix(TOP_LEVEL + os.sep)
         self.db_cursor.execute('''update videos set times_viewed = times_viewed + 1
                                 where fullpath = ?''', (fullpath,))
         self.db.commit()
